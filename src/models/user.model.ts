@@ -1,6 +1,8 @@
 import { model, Schema } from "mongoose";
 import type { IAddress, ISaveUser, IUser } from "../types/user.type.js";
 
+
+
 const userSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
@@ -31,6 +33,7 @@ const saveUserSchema = new Schema<ISaveUser>(
   },
   { timestamps: true }
 );
+
 
 
 export const User = model<IUser>("User", userSchema);

@@ -1,11 +1,13 @@
 import type { Request, Response } from "express";
-import { User, SaveUser } from "../models/user.model.js";
+import { SaveUser } from "../models/user.model.js";
 import type { ISaveUser } from "../types/user.type.js";
+import  { UserSchema } from "../schema/user.schema.js";
 export class UserController {
   signUp = async (req: Request, res: Response) => {
     try {
-      console.log("-----")
+     
       const users: ISaveUser = req.body;
+      UserSchema.parse(users)
       const user = await SaveUser.insertOne(users);
       return res.status(200).json({
         success: true,
