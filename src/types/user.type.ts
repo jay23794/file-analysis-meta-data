@@ -5,7 +5,7 @@ export interface IUser {
   age: number;
 }
 
-export interface ISaveUser {
+export interface ISaveUser  {
   id?: string;
   name: string;
   email: string;
