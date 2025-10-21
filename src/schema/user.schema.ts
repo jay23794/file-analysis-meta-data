@@ -1,6 +1,6 @@
 import { z } from "zod";
 const AddressSchema = z.object({
-    fullAddress: z.string().max(30),
+    fullAddress: z.string().max(50),
     houseNumber: z.string().optional(),
     pincode: z.number().min(6).max(6),
     state: z.string(),

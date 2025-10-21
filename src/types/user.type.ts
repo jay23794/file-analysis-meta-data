@@ -1,17 +1,22 @@
-export interface IUser {
+export interface IUser  {
   id?: string;
   name: string;
   email: string;
   age: number;
 }
 
-export interface ISaveUser  {
+export interface ISaveUser extends Document,IUserMethods {
   id?: string;
   name: string;
   email: string;
   age: number;
   address:IAddress[];
   password:string;
+
+ 
+}
+interface IUserMethods {
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 export interface IAddress {

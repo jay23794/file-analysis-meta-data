@@ -1,23 +1,54 @@
 import type { Request, Response } from "express";
-import { SaveUser } from "../models/user.model.js";
+import { SaveUser,User } from "../models/user.model.js";
 import type { ISaveUser } from "../types/user.type.js";
-import  { UserSchema } from "../schema/user.schema.js";
+import { UserSchema } from "../schema/user.schema.js";
+
 export class UserController {
   signUp = async (req: Request, res: Response) => {
     try {
-     
       const users: ISaveUser = req.body;
-      UserSchema.parse(users)
+      UserSchema.parse(users);
       const user = await SaveUser.insertOne(users);
       return res.status(200).json({
         success: true,
         data: user,
       });
     } catch (error) {
-       return res.status(200).json({
+      return res.status(200).json({
         success: true,
         data: [],
-        error
+        error,
+      });
+    }
+  };
+
+  signIn = async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      const user = await SaveUser.findOne({ email });
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const isMatch = await user.comparePassword(password);
+     
+      if (!isMatch) {
+        return res.status(400).json({
+          success: false,
+          data: [],
+          message: "invalid password",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: user,
+      });
+    } catch (error) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        error,
       });
     }
   };

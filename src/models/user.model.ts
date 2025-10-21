@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 import type { IAddress, ISaveUser, IUser } from "../types/user.type.js";
-
-
+import bcrypt from 'bcryptjs';
 
 const userSchema = new Schema<IUser>(
   {
@@ -33,6 +32,23 @@ const saveUserSchema = new Schema<ISaveUser>(
   },
   { timestamps: true }
 );
+
+saveUserSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  try {
+    const saltRounds = 10;
+    this.password = await bcrypt.hash(this.password, saltRounds);
+    next();
+  } catch (err) {
+    next(err as Error);
+  }
+});
+
+saveUserSchema.methods.comparePassword = async function(
+  candidatePassword: string
+): Promise<boolean> {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 
 
