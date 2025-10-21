@@ -12,8 +12,7 @@ export interface ISaveUser extends Document,IUserMethods {
   age: number;
   address:IAddress[];
   password:string;
-
- 
+  refreshToken?:string
 }
 interface IUserMethods {
   comparePassword(candidatePassword: string): Promise<boolean>;

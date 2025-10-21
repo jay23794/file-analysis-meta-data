@@ -1,6 +1,7 @@
 import { model, Schema } from "mongoose";
 import type { IAddress, ISaveUser, IUser } from "../types/user.type.js";
 import bcrypt from 'bcryptjs';
+import { nullable } from "zod/mini";
 
 const userSchema = new Schema<IUser>(
   {
@@ -29,11 +30,12 @@ const saveUserSchema = new Schema<ISaveUser>(
     age: { type: Number, required: true },
     password: { type: String, required: true, minLength: 6 },
     address: [addressSchema],
+    refreshToken: { type: String, default: null }
   },
   { timestamps: true }
 );
 
-saveUserSchema.pre('save', async function(next) {
+saveUserSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
     const saltRounds = 10;
@@ -44,7 +46,7 @@ saveUserSchema.pre('save', async function(next) {
   }
 });
 
-saveUserSchema.methods.comparePassword = async function(
+saveUserSchema.methods.comparePassword = async function (
   candidatePassword: string
 ): Promise<boolean> {
   return await bcrypt.compare(candidatePassword, this.password);
