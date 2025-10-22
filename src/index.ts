@@ -3,9 +3,8 @@ import type  { Request, Response }  from "express";
 import {mongoConnection} from './config/db.config.js'
 import userRoutes from './routes/user.route.js'
 import * as dotenv from "dotenv";
-
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
-import { notFound } from "./errors/notFound.error.js";
+
 dotenv.config();
 
 
