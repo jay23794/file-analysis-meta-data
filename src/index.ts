@@ -3,6 +3,9 @@ import type  { Request, Response }  from "express";
 import {mongoConnection} from './config/db.config.js'
 import userRoutes from './routes/user.route.js'
 import * as dotenv from "dotenv";
+
+import { errorHandler } from "./middleware/errorHandler.middleware.js";
+import { notFound } from "./errors/notFound.error.js";
 dotenv.config();
 
 
@@ -19,11 +22,19 @@ app.use(express.urlencoded({ extended: true }));
 mongoConnection.connectDB();
 
 
-app.use('/api/users', userRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
+
+app.use('/api/users', userRoutes);
+
+// 404 handler - must be AFTER all routes
+//app.use(notFound);
+
+// Error handler - must be LAST
+app.use(errorHandler);
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
