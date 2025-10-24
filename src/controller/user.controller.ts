@@ -20,7 +20,7 @@ export class UserController {
         data: user,
       });
     } catch (error) {
-     next(error);
+      next(error);
     }
   };
 
@@ -34,7 +34,7 @@ export class UserController {
 
       const user = await SaveUser.findOne({ email });
       if (!user) {
-         throw new UnauthorizedError("Invalid credentials");
+        throw new UnauthorizedError("Invalid credentials");
       }
 
       const isMatch = await user.comparePassword(password);
@@ -65,13 +65,7 @@ export class UserController {
       next(error);
     }
   };
-  getAllUsers(req: Request, res: Response) {
-    res.status(200).json({
-      success: true,
-      count: 0,
-      data: [],
-    });
-  }
+
 }
 export const userController = new UserController();
 
