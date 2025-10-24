@@ -1,28 +1,30 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { SaveUser } from "../models/user.model.js";
 import type { ISaveUser } from "../types/user.type.js";
 import { UserSchema } from "../schema/user.schema.js";
 import jwt from "jsonwebtoken";
+import { ConflictError, UnauthorizedError } from "../errors/custom.errors.js";
 export class UserController {
-  signUp = async (req: Request, res: Response) => {
+  signUp = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const users: ISaveUser = req.body;
       UserSchema.parse(users);
+
+      const isUser = await SaveUser.findOne({ email: users.email })
+      if (isUser) {
+        throw new ConflictError('User already exists');
+      }
       const user = await SaveUser.insertOne(users);
       return res.status(200).json({
         success: true,
         data: user,
       });
     } catch (error) {
-      return res.status(200).json({
-        success: true,
-        data: [],
-        error,
-      });
+     next(error);
     }
   };
 
-  signIn = async (req: Request, res: Response) => {
+  signIn = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
       const secret = process.env.JWT_SECRET ?? "";
@@ -32,21 +34,12 @@ export class UserController {
 
       const user = await SaveUser.findOne({ email });
       if (!user) {
-        return res.status(400).json({
-          success: false,
-          data: [],
-          message: "User not exists",
-        });
+         throw new UnauthorizedError("Invalid credentials");
       }
 
       const isMatch = await user.comparePassword(password);
-
       if (!isMatch) {
-        return res.status(400).json({
-          success: false,
-          data: [],
-          message: "invalid password",
-        });
+        throw new UnauthorizedError("Invalid credentials");
       }
 
       // access token
@@ -69,11 +62,7 @@ export class UserController {
         accessToken,
       });
     } catch (error) {
-      return res.status(200).json({
-        success: true,
-        data: [],
-        error,
-      });
+      next(error);
     }
   };
   getAllUsers(req: Request, res: Response) {
@@ -85,3 +74,5 @@ export class UserController {
   }
 }
 export const userController = new UserController();
+
+
