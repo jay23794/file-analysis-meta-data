@@ -7,6 +7,7 @@ import { ConflictError, UnauthorizedError } from "../errors/custom.errors.js";
 import nodemailer from 'nodemailer';
 
 import * as dotenv from "dotenv";
+import type { IJWTpayload } from "../global/global.type.js";
 dotenv.config();
 export class UserController {
   signUp = async (req: Request, res: Response, next: NextFunction) => {
@@ -82,11 +83,7 @@ export class UserController {
   ) => {
     try {
       const token = req.params?.token ?? ""
-      const decode = jwt.verify(token, process.env.JWT_EMAIL_VERIFICATION ?? "") as {
-        userId: string;
-        iat: number;
-        exp: number;
-      };
+      const decode = jwt.verify(token, process.env.JWT_EMAIL_VERIFICATION ?? "") as IJWTpayload
 
       const user = await SaveUser.findOne({ email: decode.userId,emailVerificationToken:token });
       if (!user) {
