@@ -21,11 +21,13 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@types/nodemailer": "^7.0.3",
     "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.1",
+    "nodemailer": "^7.0.10",
     "zod": "^4.1.12"
   }
 }

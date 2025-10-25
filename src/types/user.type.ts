@@ -13,6 +13,8 @@ export interface ISaveUser extends Document,IUserMethods {
   address:IAddress[];
   password:string;
   refreshToken?:string
+  emailVerified:Boolean
+  emailVerificationToken?:string
 }
 interface IUserMethods {
   comparePassword(candidatePassword: string): Promise<boolean>;

@@ -4,7 +4,8 @@ import { userController } from "../controller/user.controller.js";
 const router = Router();
 router.post('/sign-up', userController.signUp);
 router.post('/sign-in', userController.signIn);
-router.get('/', userController.getAllUsers.bind(userController));
+router.get('/email-verification/:token', userController.verificationEmail);
+// router.get('/', userController.getAllUsers.bind(userController));
 
 
 

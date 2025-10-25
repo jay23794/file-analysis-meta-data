@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 import type { IAddress, ISaveUser, IUser } from "../types/user.type.js";
 import bcrypt from 'bcryptjs';
-import { nullable } from "zod/mini";
 
 const userSchema = new Schema<IUser>(
   {
@@ -30,7 +29,9 @@ const saveUserSchema = new Schema<ISaveUser>(
     age: { type: Number, required: true },
     password: { type: String, required: true, minLength: 6 },
     address: [addressSchema],
-    refreshToken: { type: String, default: null }
+    refreshToken: { type: String, default: null },
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken:{ type: String, default: null },
   },
   { timestamps: true }
 );
