@@ -5,10 +5,10 @@ import { UserSchema } from "../schema/user.schema.js";
 import jwt from "jsonwebtoken";
 import { ConflictError, UnauthorizedError } from "../errors/custom.errors.js";
 import nodemailer from 'nodemailer';
-
 import * as dotenv from "dotenv";
 import type { IJWTpayload } from "../global/global.type.js";
 dotenv.config();
+
 export class UserController {
   signUp = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -26,8 +26,9 @@ export class UserController {
       });
 
       users.emailVerificationToken=emailToken
-      const user = await SaveUser.insertOne(users);
       await this.sendEmail(users.email, emailToken)
+      const user = await SaveUser.insertOne(users);
+      
       return res.status(200).json({
         success: true,
         data: user,
@@ -133,7 +134,7 @@ export class UserController {
         html: `<a href='${process.env.LOCALHOST}api/users/email-verification/${token}' >Click Here to Verify</a>`,
       });
 
-      console.log("Message sent:", info.messageId);
+      console.log("Message sent:", info);
     })();
 
   }
