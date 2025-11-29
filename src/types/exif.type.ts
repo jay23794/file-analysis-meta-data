@@ -1,6 +1,19 @@
 export interface IExif  {
-  id?: string;
+  jobId: string;
   fileName: string;
   exif: object;
   
+}
+
+export interface IImageOCR  {
+  jobId: string;
+  fileName: string;
+  text: string;
+}
+
+export interface IAnalysis  {
+  id?: string;
+  fileName: string;
+  extension: string;
+  status:string;
 }
