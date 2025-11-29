@@ -1,6 +1,6 @@
 import { model, Schema } from "mongoose";
 import type { IAnalysis, IExif, IImageOCR } from "../types/exif.type.js";
-import { object } from "zod";
+
 
 
 const exifSchema = new Schema<IExif>(
