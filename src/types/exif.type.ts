@@ -8,7 +8,7 @@ export interface IExif  {
 export interface IImageOCR  {
   jobId: string;
   fileName: string;
-  text: string;
+  text: object;
 }
 
 export interface IAnalysis  {

@@ -13,8 +13,8 @@ export function startFileWorker() {
     const worker = new Worker(
         "file-processing-queue",
         async (job: Job) => {
-            const { filePath, originalName,jobId } = job.data;
-            _runJobs(job.name, filePath, originalName,jobId)
+            const { filePath, originalName, jobId } = job.data;
+            _runJobs(job.name, filePath, originalName, jobId)
         },
         {
             connection: redisConnection.getConnection(),
@@ -26,27 +26,33 @@ export function startFileWorker() {
     });
 
     worker.on("failed", (job, err) => {
-         console.log(` Job ${job?.name} completed, Job ${job?.id} completed`,err);
+        console.log(` Job ${job?.name} completed, Job ${job?.id} completed`, err);
     });
 
     console.log("------File Worker started----");
 }
 
-async function _performOCR(filePath: string, fileName: string,nJobId:string): Promise<TextResult> {
+async function _performOCR(filePath: string, fileName: string, nJobId: string) {
     try {
         const dataBuffer = fs.readFileSync(filePath);
         const parser = new PDFParse({
             data: dataBuffer,
             verbosity: 1,
+        })
+
+        const text = await parser.getText();
+        await ImageOcr.insertOne({
+            jobId: nJobId,
+            fileName,
+            text,
         });
-        return await parser.getText();
     } catch (error) {
         console.error("Error performing OCR:", error);
         throw error;
     }
 }
 
-async function _performExif(filePath: string, fileName: string,nJobId:string) {
+async function _performExif(filePath: string, fileName: string, nJobId: string) {
     try {
         const tags = await exiftool.read(filePath);
         await ExifMetadata.insertOne({
@@ -61,32 +67,32 @@ async function _performExif(filePath: string, fileName: string,nJobId:string) {
         });
     }
 }
-async function _performImageToText(filePath: string, fileName: string,nJobId:string) {
+async function _performImageToText(filePath: string, fileName: string, nJobId: string) {
     try {
         const {
             data: { text },
         } = await Tesseract.recognize(filePath, "eng");
         await ImageOcr.insertOne({
-             jobId: nJobId,
+            jobId: nJobId,
             fileName,
             text,
         });
     } catch (error) {
         console.log(error)
-     }
+    }
 }
-async function _runJobs(name: string, filePath: string, originalName: string,nJobId:string) {
+async function _runJobs(name: string, filePath: string, originalName: string, nJobId: string) {
     switch (name) {
         case "ocr":
-            return await _performOCR(filePath,originalName,nJobId);
+            return await _performOCR(filePath, originalName, nJobId);
 
         case "exif":
-            await _performExif(filePath, originalName,nJobId);
-            return await fileQueue.add("imageOcr", { filePath, originalName,jobId:nJobId });
+            await _performExif(filePath, originalName, nJobId);
+            return await fileQueue.add("imageOcr", { filePath, originalName, jobId: nJobId });
 
         case "imageOcr":
-            console.log("nJob:"+nJobId)
-            return await _performImageToText(filePath, originalName,nJobId);
+            console.log("nJob:" + nJobId)
+            return await _performImageToText(filePath, originalName, nJobId);
 
         default:
             console.log("Unknown job");
