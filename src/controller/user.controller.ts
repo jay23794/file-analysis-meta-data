@@ -10,6 +10,16 @@ import type { IJWTpayload } from "../global/global.type.js";
 dotenv.config();
 
 export class UserController {
+  cehk = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+       return res.status(200).json({
+        success: true,
+        data: [],
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
   signUp = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const users: ISaveUser = req.body;

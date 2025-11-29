@@ -19,7 +19,9 @@
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
-    //  "esModuleInterop": true,
+     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+   
     // "forceConsistentCasingInFileNames": true,
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,

@@ -5,6 +5,7 @@ const router = Router();
 router.post('/sign-up', userController.signUp);
 router.post('/sign-in', userController.signIn);
 router.get('/email-verification/:token', userController.verificationEmail);
+router.get('/check', userController.cehk);
 // router.get('/', userController.getAllUsers.bind(userController));
 
 

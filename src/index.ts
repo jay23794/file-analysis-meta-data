@@ -1,9 +1,12 @@
 import express  from "express";
 import type  { Request, Response }  from "express";
-import {mongoConnection} from './config/db.config.js'
+ import {mongoConnection} from './config/db.config.js'
+import {redisConnection} from './config/redis.config.js'
 import userRoutes from './routes/user.route.js'
+import fileRoutes from './routes/file-upload.route.js'
 import * as dotenv from "dotenv";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
+import { startFileWorker } from './utils/file-worker.utils.js';
 
 dotenv.config()
 
@@ -20,14 +23,15 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 mongoConnection.connectDB();
 
-
+redisConnection.getConnection()
+startFileWorker()
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
 
-app.use('/api/users', userRoutes);
-
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/file', fileRoutes);
 // 404 handler - must be AFTER all routes
 //app.use(notFound);
 

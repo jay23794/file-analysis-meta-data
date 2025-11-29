@@ -7,6 +7,7 @@ export class MongoDbConnection {
   async connectDB() {
     try {
       const mongoURI = process.env.DATABASE_URL || "";
+      console.log(mongoURI)
       await mongoose.connect(mongoURI, {});
       console.log("MongoDB connected successfully");
     } catch (error) {
