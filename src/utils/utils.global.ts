@@ -1,5 +1,5 @@
 import { fileTypeFromFile } from 'file-type';
-import multer from 'multer';
+import multer, { type FileFilterCallback } from 'multer';
 import path from "path";
 
 export function fileUploadConfig(): multer.Multer {
@@ -13,7 +13,7 @@ const storage = multer.diskStorage({
     cb(null, uniqueName);
   },
 });
-return multer({ storage,limits: { fileSize: 5 * 1024 * 1024 },  });
+return multer({ storage,fileFilter,limits: { fileSize: 50 * 1024 * 1024 },  });
 }
 
 export async function isImage(filePath: string): Promise<boolean> {
@@ -38,3 +38,18 @@ export async  function isPdf(filePath: string): Promise<boolean> {
 
     return type.mime.startsWith("application/pdf");
 }
+
+const fileFilter = (
+  req: Express.Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
+  const allowedExtensions = [".png", ".jpg", ".jpeg", ".pdf"];
+  const ext = path.extname(file.originalname).toLowerCase();
+
+  if (!allowedExtensions.includes(ext)) {
+    return cb(new Error("Only PNG, JPG, JPEG, and PDF files are allowed!"));
+  }
+
+  cb(null, true);
+};
