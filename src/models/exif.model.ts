@@ -1,5 +1,6 @@
 import { model, Schema } from "mongoose";
-import type { IAnalysis, IExif, IImageOCR } from "../types/exif.type.js";
+import type { IAnalysis, IExif, IImageOCR, IJobStatus } from "../types/exif.type.js";
+
 
 
 
@@ -30,6 +31,20 @@ const analysisSchema = new Schema<IAnalysis>(
   { timestamps: true }
 );
 
+const jobSummerySchema = new Schema<IJobStatus>(
+  {
+    success:{ type:Boolean, required: true },
+    jobId: { type: String, required: false },
+    extension: { type: String, required: true, },
+    lastJobName: { type: String, required: true, },
+    error: { type: Object, required: true, },
+    originalName: { type: String, required: true, },
+    
+  },
+  { timestamps: true }
+);
+
+export const Summery = model<IJobStatus>("jobSummery", jobSummerySchema);
 export const Analysis = model<IAnalysis>("analysis", analysisSchema);
 export const ExifMetadata = model<IExif>("exif", exifSchema);
 export const ImageOcr = model<IImageOCR>("imageOcr", imageOcrSchema);

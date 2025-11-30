@@ -2,138 +2,158 @@ import { Worker, Job } from "bullmq";
 import { redisConnection } from "../config/redis.config.js";
 import { exiftool } from "exiftool-vendored";
 import fs from "fs";
-import { PDFParse, } from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import Tesseract from "tesseract.js";
 import { ExifMetadata, ImageOcr, Analysis } from "../models/exif.model.js";
 import { fileQueue } from "../utils/file-queue.utils.js";
-import type { file } from "zod";
 import { isPdf, isImage } from "./utils.global.js";
+import type { IJobPayload } from "../types/exif.type.js";
+import axios from "axios";
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-
 export function startFileWorker() {
-    const worker = new Worker(
-        "file-processing-queue",
-        async (job: Job) => {
-            const { filePath,extension, originalName, jobId } = job.data;
-            _runJobs(job.name, filePath, originalName, jobId,extension)
-        },
-        {
-            connection: redisConnection.getConnection(),
-        }
+  const worker = new Worker(
+    "file-processing-queue",
+    async (job: Job) => {
+      const jobPayload = job.data as IJobPayload;
+      _runJobs(job.name, jobPayload);
+    },
+    {
+      connection: redisConnection.getConnection(),
+    }
+  );
+
+  worker.on("completed", (job) => {
+    console.log(` Job ${job.name} completed, Job ${job.id} completed`);
+  });
+
+  worker.on("failed", (job, err) => {
+    console.log(` Job ${job?.name} completed, Job ${job?.id} completed`, err);
+  });
+}
+
+async function _runJobs(jobName: string, jobpayload: IJobPayload) {
+  console.log(jobName);
+  switch (jobName) {
+    case "scan":
+      return await _performScanning(jobpayload);
+
+    case "ocr":
+      return await _performOCR(jobpayload);
+
+    case "exif":
+      await _performExif(jobpayload);
+      return await fileQueue.add("imageOcr", jobpayload);
+
+    case "imageOcr":
+      return await _performImageToText(jobpayload);
+
+    case "file-status":
+      return await _fileProcessing(jobpayload);
+
+    default:
+      console.log("Unknown job");
+  }
+}
+
+async function _performScanning(jobpayload: IJobPayload) {
+  // Update file status
+  console.log(jobpayload.jobId);
+  await Analysis.updateOne(
+    { _id: jobpayload.jobId },
+    { $set: { status: "PROCESSING" } }
+  );
+  await sleep(5000);
+  if (await isPdf(jobpayload.filePath)) {
+    await fileQueue.add("ocr", jobpayload);
+  }
+  if (await isImage(jobpayload.filePath)) {
+    await fileQueue.add("exif", jobpayload);
+  }
+}
+
+async function _performOCR(jobpayload: IJobPayload) {
+  try {
+    const dataBuffer = fs.readFileSync(jobpayload.filePath);
+    const parser = new PDFParse({
+      data: dataBuffer,
+      verbosity: 1,
+    });
+
+    const text = await parser.getText();
+    await ImageOcr.insertOne({
+      jobId: jobpayload.jobId,
+      fileName: jobpayload.originalName,
+      text,
+    });
+    await fileQueue.add("file-status", jobpayload);
+  } catch (error) {
+    await Analysis.updateOne(
+      { _id: jobpayload.jobId },
+      { $set: { status: "FAILED" } }
     );
+  }
+}
 
-    worker.on("completed", (job) => {
-        console.log(` Job ${job.name} completed, Job ${job.id} completed`);
+async function _performExif(jobpayload: IJobPayload) {
+  try {
+    const tags = await exiftool.read(jobpayload.filePath);
+    await ExifMetadata.insertOne({
+      exif: tags,
+      jobId: jobpayload.jobId,
+      fileName: jobpayload.originalName,
+    });
+  } catch (error) {
+    await ExifMetadata.insertOne({
+      exif: error,
+      fileName: jobpayload.originalName,
+    });
+  }
+}
+
+async function _performImageToText(jobpayload: IJobPayload) {
+  try {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(jobpayload.filePath, "eng");
+    await ImageOcr.insertOne({
+      jobId: jobpayload.jobId,
+      fileName: jobpayload.originalName,
+      text,
     });
 
-    worker.on("failed", (job, err) => {
-        console.log(` Job ${job?.name} completed, Job ${job?.id} completed`, err);
+    // File processing Complete
+    await fileQueue.add("file-status", jobpayload);
+  } catch (error) {
+    await Analysis.updateOne(
+      { _id: jobpayload.jobId },
+      { $set: { status: "FAILED" } }
+    );
+  }
+}
+
+async function _fileProcessing(jobpayload: IJobPayload) {
+  try {
+    await Analysis.updateOne(
+      { _id: jobpayload.jobId },
+      { $set: { status: "COMPLETED" } }
+    );
+    await axios.post("http://localhost:9000/api/v1/file/webhook", {
+      success: true,
+      error: "",
+      data: { lastJobName: "", jobpayload },
     });
-
-    console.log("------File Worker started----");
-}
-
-
-async function _runJobs(name: string, filePath: string, originalName: string, nJobId: string,extension:string) {
-    switch (name) {
-
-        case "scan":
-            return await _performScanning(filePath, originalName, nJobId,extension);
-
-        case "ocr":
-            return await _performOCR(filePath, originalName, nJobId,extension);
-
-        case "exif":
-            await _performExif(filePath, originalName, nJobId,extension);
-            return await fileQueue.add("imageOcr", { filePath, originalName, jobId: nJobId,extension });
-
-        case "imageOcr":
-            console.log("nJob:" + nJobId)
-            return await _performImageToText(filePath, originalName, nJobId);
-
-        default:
-            console.log("Unknown job");
-    }
-}
-
-async function _performScanning(filePath: string, originalName: string, nJobId: string,extension:string) {
-     // Update file status
-     await Analysis.updateOne({ _id: nJobId }, { $set: { status: "PROCESSING" } });
-    await sleep(5000)
-    if (await isPdf(filePath)) {
-        await fileQueue.add("ocr", {
-            filePath,
-            extension,
-            originalName,
-            jobId: nJobId
-        });
-    }
-    if (await isImage(filePath)) {
-        await fileQueue.add("exif", {
-            filePath: filePath,
-            extension,
-            originalName,
-            jobId:nJobId
-        });
-    }
-}
-
-async function _performOCR(filePath: string, fileName: string, nJobId: string,extension:string) {
-    try {
-       
-
-        const dataBuffer = fs.readFileSync(filePath);
-        const parser = new PDFParse({
-            data: dataBuffer,
-            verbosity: 1,
-        })
-
-        const text = await parser.getText();
-        await ImageOcr.insertOne({
-            jobId: nJobId,
-            fileName,
-            text,
-        });
-        await Analysis.updateOne({ _id: nJobId }, { $set: { status: "COMPLETED" } });
-    } catch (error) {
-        await Analysis.updateOne({ _id: nJobId }, { $set: { status: "FAILED" } });
-
-    }
-}
-
-async function _performExif(filePath: string, fileName: string, nJobId: string,extension:string) {
-    try {
-
-       const tags = await exiftool.read(filePath);
-        await ExifMetadata.insertOne({
-            exif: tags,
-            jobId: nJobId,
-            fileName,
-        });
-    } catch (error) {
-        await ExifMetadata.insertOne({
-            exif: error,
-            fileName,
-        });
-    }
-}
-
-async function _performImageToText(filePath: string, fileName: string, nJobId: string) {
-    try {
-        const {
-            data: { text },
-        } = await Tesseract.recognize(filePath, "eng");
-        await ImageOcr.insertOne({
-            jobId: nJobId,
-            fileName,
-            text,
-        });
-        await Analysis.updateOne({ _id: nJobId }, { $set: { status: "COMPLETED" } });
-
-
-    } catch (error) {
-        await Analysis.updateOne({ _id: nJobId }, { $set: { status: "FAILED" } });
-
-    }
+  } catch (error) {
+   
+    await Analysis.updateOne(
+      { _id: jobpayload.jobId },
+      { $set: { status: "FAILED" } }
+    );
+    await axios.post("http://localhost:9000/api/v1/file/webhook", {
+      success: false,
+      error,
+      data: { lastJobName: "", jobpayload },
+    });
+  }
 }

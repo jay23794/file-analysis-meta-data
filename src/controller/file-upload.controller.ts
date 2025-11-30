@@ -1,7 +1,9 @@
 import type { NextFunction, Request, Response } from "express";
 import { fileQueue } from "../utils/file-queue.utils.js";
-import { Analysis, ExifMetadata, ImageOcr } from "../models/exif.model.js";
+import { Analysis, ExifMetadata, ImageOcr, Summery } from "../models/exif.model.js";
 import { fileExention } from "../utils/utils.global.js";
+import type { IJobPayload } from "../types/exif.type.js";
+
 export class FileUploadController {
     upload = async (req: Request, res: Response, next: NextFunction) => {
         try {
@@ -12,12 +14,16 @@ export class FileUploadController {
             const extension = await fileExention(file.path)
             const result = await Analysis.insertOne({ extension, fileName: file.originalname, status: "UPLOADED" })
 
-             await fileQueue.add("scan", {
-                    filePath: file.path,
-                    extension,
-                    originalName: file.originalname,
-                    jobId: result.id
-                });
+            const job: IJobPayload = {
+                extension,
+                filePath: file.path,
+                jobId: result.id,
+                originalName: file.originalname,
+                jobName: "scan"
+            }
+
+
+            await fileQueue.add("scan", job);
 
 
             return res.status(200).json({
@@ -65,6 +71,50 @@ export class FileUploadController {
                 message: "File under processing. Please try in sometime"
 
             });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    webhook = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const payload = req.body
+            const jobDetail = payload?.data?.jobpayload as IJobPayload;
+            if (!jobDetail || !jobDetail.jobId) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Invalid payload",
+                });
+            }
+           const result = await Analysis.findOne({ '_id': jobDetail.jobId });
+
+            if (!result) return res.status(400).json({ error: "No file uploaded", success: false });
+
+
+            await Summery.insertOne({
+                error: payload.error || "",
+                extension: jobDetail.extension,
+                jobId: jobDetail.jobId,
+                lastJobName: jobDetail.jobName || "",
+                originalName: jobDetail.originalName,
+                success: payload.success
+            });
+            if (payload.success) {
+                return res.status(200).json({
+                    success: true,
+                    message: "File processing completed successfully",
+
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: "File processing incomplete",
+
+            });
+
+
         } catch (error) {
             next(error);
         }

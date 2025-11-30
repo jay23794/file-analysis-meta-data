@@ -17,3 +17,20 @@ export interface IAnalysis  {
   extension: string;
   status:string;
 }
+
+export interface IJobPayload  {
+  jobId: string;
+  jobName: string;
+  filePath: string;
+  extension: string;
+  originalName:string;
+}
+
+export interface IJobStatus  {
+  success:boolean
+  jobId: string;
+  lastJobName: string;
+  error: object;
+  extension: string;
+  originalName:string;
+}
