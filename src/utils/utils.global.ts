@@ -1,3 +1,4 @@
+import { fileTypeFromFile } from 'file-type';
 import multer from 'multer';
 import path from "path";
 
@@ -13,4 +14,27 @@ const storage = multer.diskStorage({
   },
 });
 return multer({ storage,limits: { fileSize: 5 * 1024 * 1024 },  });
+}
+
+export async function isImage(filePath: string): Promise<boolean> {
+    const type = await fileTypeFromFile(filePath);
+
+    if (!type) return false;
+
+    return type.mime.startsWith("image/");
+}
+
+export async function fileExention(filePath: string): Promise<string> {
+    const type = await fileTypeFromFile(filePath);
+    if (!type) return "unknown";
+    return type.ext
+}
+
+export async  function isPdf(filePath: string): Promise<boolean> {
+  
+    const type = await fileTypeFromFile(filePath);
+
+    if (!type) return false;
+
+    return type.mime.startsWith("application/pdf");
 }

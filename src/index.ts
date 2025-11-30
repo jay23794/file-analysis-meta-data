@@ -7,14 +7,16 @@ import fileRoutes from './routes/file-upload.route.js'
 import * as dotenv from "dotenv";
 import { errorHandler } from "./middleware/errorHandler.middleware.js";
 import { startFileWorker } from './utils/file-worker.utils.js';
-
+import cors from 'cors';
 dotenv.config()
-
-
 const app = express();
+
+app.use(cors()); 
+
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
 
 // Middleware
 app.use(express.json())
